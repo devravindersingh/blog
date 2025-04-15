@@ -1,6 +1,8 @@
 package com.ravinder.api.blog.admin;
 
 import com.ravinder.api.blog.repository.PostRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -16,6 +18,7 @@ import java.net.Socket;
 @Component
 public class AdminServer implements Runnable{
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminServer.class);
     private final ConfigurableApplicationContext context;
     private final PostRepository postRepository;
     private final int port  = 9999;
@@ -28,7 +31,7 @@ public class AdminServer implements Runnable{
     @Override
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Admin server running on port " + port);
+            logger.info("Admin server running on port {}",port);
             while (running) {
                 try (Socket clientSocket = serverSocket.accept();
                      BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -40,29 +43,36 @@ public class AdminServer implements Runnable{
                     switch (command.toLowerCase()){
                         case "shutdown" :
                             out.println("Shutting down server ......");
+                            logger.info("Shutting down server ......");
                             running = false;
                             SpringApplication.exit(context, () -> 0);
                             break;
                         case "clearcache":
                             clearCache();
                             out.println("Cache cleard successfully");
+                            logger.info("Cache cleard successfully");
                             break;
                         case "status":
                             long postCount = postRepository.count();
                             out.println("Server status: Running, Posts in DB - " + postCount);
+                            logger.info("Server status: Running, Posts in DB - " + postCount);
                             break;
-                        default: out.println("Unknown command. Supported commands: shutdown, clearcache, status");
+                        default:
+                            out.println("Unknown command. Supported commands: shutdown, clearcache, status");
+                            logger.warn("Unknown admin command: {}", command);
 
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+            logger.error("Admin server error");
         }
     }
 
     @CacheEvict(value = {"posts","postList"}, allEntries = true)
     private void clearCache() {
+        logger.info("Clearing all caches");
     }
 
     public void stop() {

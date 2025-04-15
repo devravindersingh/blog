@@ -1,5 +1,7 @@
 package com.ravinder.api.blog.scheduler;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -10,6 +12,8 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class TaskScheduler {
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskScheduler.class);
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private final PriorityBlockingQueue<Task> queue = new PriorityBlockingQueue<>(10, Comparator.comparingInt(Task::getPriority));
     private volatile boolean running = true;
@@ -21,7 +25,9 @@ public class TaskScheduler {
                     try {
                         Task task = queue.poll(1, TimeUnit.SECONDS);
                         if (task != null) {
+                            logger.info("Executing task: {}", task.getId());
                             task.getAction().run();
+                            logger.info("Task completed: {}", task.getId());
                         }
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -37,6 +43,7 @@ public class TaskScheduler {
     }
 
     public void scheduleTask(Task task) {
+        logger.info("Scheduling task: {}", task.getId());
         queue.add(task);
     }
 
