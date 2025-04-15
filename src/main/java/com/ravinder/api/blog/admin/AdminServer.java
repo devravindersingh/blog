@@ -1,6 +1,7 @@
 package com.ravinder.api.blog.admin;
 
 import com.ravinder.api.blog.repository.PostRepository;
+import com.ravinder.api.blog.service.CacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -21,12 +22,14 @@ public class AdminServer implements Runnable{
     private static final Logger logger = LoggerFactory.getLogger(AdminServer.class);
     private final ConfigurableApplicationContext context;
     private final PostRepository postRepository;
+    private CacheService cacheService;
     private final int port  = 9999;
     private volatile boolean running = true;
 
-    public AdminServer(ConfigurableApplicationContext context, PostRepository postRepository){
+    public AdminServer(ConfigurableApplicationContext context, PostRepository postRepository, CacheService cacheService){
         this.context = context;
         this.postRepository = postRepository;
+        this.cacheService = cacheService;
     }
     @Override
     public void run() {
@@ -48,7 +51,7 @@ public class AdminServer implements Runnable{
                             SpringApplication.exit(context, () -> 0);
                             break;
                         case "clearcache":
-                            clearCache();
+                            cacheService.clearCache();
                             out.println("Cache cleard successfully");
                             logger.info("Cache cleard successfully");
                             break;
@@ -70,10 +73,7 @@ public class AdminServer implements Runnable{
         }
     }
 
-    @CacheEvict(value = {"posts","postList"}, allEntries = true)
-    private void clearCache() {
-        logger.info("Clearing all caches");
-    }
+
 
     public void stop() {
         running = false;
